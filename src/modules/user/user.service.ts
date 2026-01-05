@@ -233,7 +233,7 @@ export const updateUserPartially = async (
     return res.status(200).json({
       success: true,
       message: "User updated successfully",
-      data:responseDTO
+      data: responseDTO,
     });
   } catch (error) {
     return res
@@ -243,39 +243,46 @@ export const updateUserPartially = async (
 };
 
 // delete user
-export const deleteUser = async (req: Request, res: Response) =>{
+export const deleteUser = async (req: Request, res: Response) => {
   try {
     // get id from request
-  const { id } = req.params;
+    const { id } = req.params;
 
-  // check user existence
-  const query = "SELECT * FROM users WHERE id = ?"
-  const [rows] = await db.query<User & RowDataPacket[]>(query, [id]);
-  
-  if(rows.length === 0){
-    return res.status(404).json({message: "User not found", success: false})
+    // check user existence
+    const query = "SELECT * FROM users WHERE id = ?";
+    const [rows] = await db.query<User & RowDataPacket[]>(query, [id]);
+
+    if (rows.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "User not found", success: false });
+    }
+
+    const responseDTO: UserResponseDTO = {
+      id: rows[0].id,
+      name: rows[0].name,
+      email: rows[0].email,
+      role: rows[0].role,
+    };
+
+    // delete user
+    const deleteQuery = "DELETE FROM users WHERE id = ?";
+    const [result] = await db.query<User & ResultSetHeader>(deleteQuery, [id]);
+
+    if (result.affectedRows === 0) {
+      return res
+        .status(500)
+        .json({ message: "Internal server error", success: false });
+    }
+
+    return res.status(200).json({
+      message: "User deletd successfully",
+      success: true,
+      data: responseDTO,
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Internal server error", success: false, error: error });
   }
-
-  const responseDTO: UserResponseDTO = {
-    id: rows[0].id,
-    name: rows[0].name,
-    email: rows[0].email,
-    role: rows[0].role,
-  };
-  
-  // delete user
-  const deleteQuery = "DELETE FROM users WHERE id = ?"
-  const [result] = await db.query<User & ResultSetHeader>(deleteQuery, [id] )
-  
-  if(result.affectedRows === 0){
-    return res.status(500).json({message: "Internal server error", success: false})
-  }
-
-  return res.status(200).json({message: "User deletd successfully", success: true, data: responseDTO})
-
-  
-} catch (error) {
-    return res.status(500).json({message: "Internal server error", success: false})
-  }
-
-}
+};
