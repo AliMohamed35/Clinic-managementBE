@@ -2,12 +2,13 @@ import { type Request, type Response } from "express";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type {
   CreateUserDTO,
+  logInResponseDTO,
   UpdateUserDTO,
   User,
   UserResponseDTO,
 } from "../../DB/models/user/user.types.ts";
 import { db } from "../../DB/connection.ts";
-import { hashPassword } from "../../utils/hash/hash.ts";
+import { comparePassword, hashPassword } from "../../utils/hash/hash.ts";
 
 // register new user
 export const register = async (req: Request, res: Response) => {
@@ -31,8 +32,15 @@ export const register = async (req: Request, res: Response) => {
     const hashedPassword = hashPassword(userData.password);
 
     const [result] = await db.execute<ResultSetHeader>(
-      "INSERT INTO users (email, name, password, role) VALUES (?, ?, ?, ?)",
-      [userData.email, userData.name, hashedPassword, userData.role]
+      "INSERT INTO users (email, name, password, role, isActive, isDeleted) VALUES (?, ?, ?, ?, ?, ?)",
+      [
+        userData.email,
+        userData.name,
+        hashedPassword,
+        userData.role,
+        userData.isActive,
+        userData.isDeleted,
+      ]
     );
 
     // set Response DTO
@@ -41,6 +49,8 @@ export const register = async (req: Request, res: Response) => {
       name: userData.name,
       email: userData.email,
       role: userData.role,
+      isActive: userData.isActive!,
+      isDeleted: userData.isDeleted!,
     };
 
     return res.status(201).json({
@@ -54,6 +64,81 @@ export const register = async (req: Request, res: Response) => {
       message: "Internal server error",
     });
   }
+};
+
+// user login
+export const login = async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+
+  // check user existence
+  const [rows] = await db.query<User & RowDataPacket[]>(
+    "SELECT * FROM users WHERE email = ?",
+    [email]
+  );
+
+  if (rows.length === 0) {
+    return res.status(404).json({ message: "User not found", success: false });
+  }
+
+  const match = comparePassword(password, rows[0].password);
+
+  if (!match) {
+    return res
+      .status(401)
+      .json({ message: "Invalid credentials", success: false });
+  }
+
+  const activateUser = await db.query<User & ResultSetHeader[]>(
+    "UPDATE users SET isActive = 1 WHERE email = ?",
+    [email]
+  );
+
+  const responseDTO: logInResponseDTO = {
+    name: rows[0].name,
+    email: rows[0].email,
+    role: rows[0].role,
+  };
+
+  return res.status(200).json({
+    message: "user logged in successfully",
+    success: true,
+    data: responseDTO,
+  });
+};
+
+export const logout = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  // check user existence
+  const [rows] = await db.query<User & RowDataPacket[]>(
+    "SELECT * FROM users WHERE id = ?",
+    [id]
+  );
+
+  if (rows.length === 0) {
+    return res.status(404).json({ message: "User not found", success: false });
+  }
+
+  if (rows[0].isActive === 0) {
+    return res.status(404).json({ message: "You need to login to logout", success: false });
+  }
+
+  const logoutUser = await db.query<User & ResultSetHeader[]>(
+    "UPDATE users SET isActive = 0 WHERE id = ?",
+    [id]
+  );
+
+  const responseDTO: logInResponseDTO = {
+    name: rows[0].name,
+    email: rows[0].email,
+    role: rows[0].role,
+  };
+
+  return res.status(200).json({
+    message: "user logged out successfully",
+    success: true,
+    data: responseDTO,
+  });
 };
 
 // get all users
@@ -263,7 +348,15 @@ export const deleteUser = async (req: Request, res: Response) => {
       name: rows[0].name,
       email: rows[0].email,
       role: rows[0].role,
+      isActive: rows[0].isActive,
+      isDeleted: rows[0].isDeleted,
     };
+
+    if(rows[0].isActive === 0){
+      return res
+        .status(400)
+        .json({ message: "You need to login!", success: false });
+    }
 
     // delete user
     const deleteQuery = "DELETE FROM users WHERE id = ?";

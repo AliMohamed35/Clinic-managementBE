@@ -6,7 +6,7 @@ import type { ObjectSchema } from "joi";
 export const validate =
   (schema: ObjectSchema, property: "body" | "params" | "query" = "body") =>
   (req: Request, res: Response, next: NextFunction) => {
-    const { error } = schema.validate(req[property], {
+    const { error, value } = schema.validate(req[property], {
       abortEarly: false,
     });
 
@@ -17,6 +17,9 @@ export const validate =
         errors: error.details.map((d) => d.message),
       });
     }
+
+    // Replace request data with validated data (includes defaults)
+    req[property] = value;
 
     next();
   };
@@ -37,5 +40,9 @@ export const userSchema = joi.object({
     tlds: { allow: ["com", "net"] },
   }),
 
-  role: joi.string().valid("doctor", "patient").required()
+  role: joi.string().valid("doctor", "patient").required(),
+
+  isActive: joi.number().valid(0, 1).default(0),
+
+  isDeleted: joi.number().valid(0, 1).default(0),
 });

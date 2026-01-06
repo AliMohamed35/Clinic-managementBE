@@ -6,6 +6,8 @@ export interface User extends RowDataPacket {
   email: string;
   password: string;
   role: string;
+  isActive: number;
+  isDeleted: number;
 }
 
 export interface CreateUserDTO {
@@ -13,10 +15,20 @@ export interface CreateUserDTO {
   email: string;
   password: string;
   role: string;
+  isActive?: number;
+  isDeleted?: number;
 }
 
 export interface UserResponseDTO {
   id: number;
+  name: string;
+  email: string;
+  role: string;
+  isActive: number;
+  isDeleted: number;
+}
+
+export interface logInResponseDTO {
   name: string;
   email: string;
   role: string;
