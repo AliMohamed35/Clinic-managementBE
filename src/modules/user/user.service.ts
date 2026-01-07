@@ -9,6 +9,7 @@ import type {
 } from "../../DB/models/user/user.types.ts";
 import { db } from "../../DB/connection.ts";
 import { comparePassword, hashPassword } from "../../utils/hash/hash.ts";
+import { generateToken } from "../../utils/jwt/jwt.ts";
 
 // register new user
 export const register = async (req: Request, res: Response) => {
@@ -32,7 +33,7 @@ export const register = async (req: Request, res: Response) => {
     const hashedPassword = hashPassword(userData.password);
 
     const [result] = await db.execute<ResultSetHeader>(
-      "INSERT INTO users (email, name, password, role, isActive, isDeleted) VALUES (?, ?, ?, ?, ?, ?)",
+      "INSERT INTO users (email, name, password, role, isActive, isDeleted, isVerified) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [
         userData.email,
         userData.name,
@@ -40,8 +41,13 @@ export const register = async (req: Request, res: Response) => {
         userData.role,
         userData.isActive,
         userData.isDeleted,
+        userData.isVerified,
       ]
     );
+    
+    // create token
+    const token = generateToken(result.insertId);
+    res.cookie('jwt', token, {httpOnly: true})
 
     // set Response DTO
     const responseDTO: UserResponseDTO = {
@@ -51,6 +57,7 @@ export const register = async (req: Request, res: Response) => {
       role: userData.role,
       isActive: userData.isActive!,
       isDeleted: userData.isDeleted!,
+      isVerified: userData.isVerified!,
     };
 
     return res.status(201).json({
@@ -350,6 +357,7 @@ export const deleteUser = async (req: Request, res: Response) => {
       role: rows[0].role,
       isActive: rows[0].isActive,
       isDeleted: rows[0].isDeleted,
+      isVerified: rows[0].isVerified,
     };
 
     if(rows[0].isActive === 0){
