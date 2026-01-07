@@ -8,6 +8,7 @@ export interface User extends RowDataPacket {
   role: string;
   isActive: number;
   isDeleted: number;
+  isVerified: boolean;
 }
 
 export interface CreateUserDTO {
@@ -17,6 +18,7 @@ export interface CreateUserDTO {
   role: string;
   isActive?: number;
   isDeleted?: number;
+  isVerified?: boolean
 }
 
 export interface UserResponseDTO {
@@ -26,6 +28,7 @@ export interface UserResponseDTO {
   role: string;
   isActive: number;
   isDeleted: number;
+  isVerified: boolean
 }
 
 export interface logInResponseDTO {

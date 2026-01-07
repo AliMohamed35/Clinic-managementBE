@@ -45,4 +45,6 @@ export const userSchema = joi.object({
   isActive: joi.number().valid(0, 1).default(0),
 
   isDeleted: joi.number().valid(0, 1).default(0),
+
+  isVerified: joi.number().valid(true, false).default(false),
 });
