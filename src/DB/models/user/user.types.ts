@@ -19,6 +19,8 @@ export interface CreateUserDTO {
   isActive?: number;
   isDeleted?: number;
   isVerified?: boolean
+  otp: number;
+  otpExpire: string;
 }
 
 export interface UserResponseDTO {
@@ -40,6 +42,6 @@ export interface logInResponseDTO {
 export interface UpdateUserDTO {
   name?: string;
   email?: string;
-  role?: "admin" | "doctor" | "user";
+  role?: "patient" | "doctor";
   password?: string;
 }
