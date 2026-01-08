@@ -18,5 +18,6 @@ router.get("/:id", userService.getUserById);
 router.put("/:id", userService.updateAllUser);
 router.patch("/:id", userService.updateUserPartially);
 router.delete("/:id", validate(userIdSchema, "params"), userService.deleteUser);
+router.delete("/softdelete/:id", validate(userIdSchema, "params"), userService.softDeleteUser);
 
 export default router;

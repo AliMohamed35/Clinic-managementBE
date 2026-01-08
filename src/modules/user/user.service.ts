@@ -10,6 +10,8 @@ import type {
 import { db } from "../../DB/connection.ts";
 import { comparePassword, hashPassword } from "../../utils/hash/hash.ts";
 import { generateToken } from "../../utils/jwt/jwt.ts";
+import { generateOTP } from "../../utils/otp/index.ts";
+import { sendMail } from "../../utils/mail/nodemailer.ts";
 
 // register new user
 export const register = async (req: Request, res: Response) => {
@@ -29,11 +31,14 @@ export const register = async (req: Request, res: Response) => {
         .json({ message: "User already exists", success: false });
     }
 
+    // generate OTP
+    const { otp, otpExpire } = generateOTP();
+
     // Hash password
     const hashedPassword = hashPassword(userData.password);
 
     const [result] = await db.execute<ResultSetHeader>(
-      "INSERT INTO users (email, name, password, role, isActive, isDeleted, isVerified) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO users (email, name, password, role, isActive, isDeleted, isVerified, otp, otpExpire) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         userData.email,
         userData.name,
@@ -42,12 +47,18 @@ export const register = async (req: Request, res: Response) => {
         userData.isActive,
         userData.isDeleted,
         userData.isVerified,
+        otp,
+        otpExpire,
       ]
     );
-    
-    // create token
-    const token = generateToken(result.insertId);
-    res.cookie('jwt', token, {httpOnly: true})
+
+    if(userData.email){
+      await sendMail({
+        to: userData.email,
+        subject: 'Email verification',
+        html: `<p>Your otp to verify your account is ${otp}</p>`, 
+      })
+    }
 
     // set Response DTO
     const responseDTO: UserResponseDTO = {
@@ -69,6 +80,7 @@ export const register = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: "Internal server error",
+      error
     });
   }
 };
@@ -96,7 +108,7 @@ export const login = async (req: Request, res: Response) => {
   }
 
   const activateUser = await db.query<User & ResultSetHeader[]>(
-    "UPDATE users SET isActive = 1 WHERE email = ?",
+    "UPDATE users SET isActive = 1, isDeleted = 0 WHERE email = ?",
     [email]
   );
 
@@ -113,6 +125,7 @@ export const login = async (req: Request, res: Response) => {
   });
 };
 
+// user logout
 export const logout = async (req: Request, res: Response) => {
   const { id } = req.params;
 
@@ -127,7 +140,9 @@ export const logout = async (req: Request, res: Response) => {
   }
 
   if (rows[0].isActive === 0) {
-    return res.status(404).json({ message: "You need to login to logout", success: false });
+    return res
+      .status(404)
+      .json({ message: "You need to login to logout", success: false });
   }
 
   const logoutUser = await db.query<User & ResultSetHeader[]>(
@@ -360,7 +375,7 @@ export const deleteUser = async (req: Request, res: Response) => {
       isVerified: rows[0].isVerified,
     };
 
-    if(rows[0].isActive === 0){
+    if (rows[0].isActive === 0) {
       return res
         .status(400)
         .json({ message: "You need to login!", success: false });
@@ -385,5 +400,59 @@ export const deleteUser = async (req: Request, res: Response) => {
     return res
       .status(500)
       .json({ message: "Internal server error", success: false, error: error });
+  }
+};
+
+export const softDeleteUser = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    // check user existence
+    const [rows] = await db.query<User & RowDataPacket[]>(
+      "SELECT * FROM users WHERE id = ?",
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "user not found!", success: false });
+    }
+
+    const responseDTO: UserResponseDTO = {
+      id: rows[0].id,
+      name: rows[0].name,
+      email: rows[0].email,
+      role: rows[0].role,
+      isActive: rows[0].isActive,
+      isDeleted: rows[0].isDeleted,
+      isVerified: rows[0].isVerified,
+    };
+
+    if (rows[0].isActive === 0 || rows[0].isVerified === false) {
+      return res
+        .status(400)
+        .json({ message: "You need to login!", success: false });
+    }
+
+    const [result] = await db.query<User & ResultSetHeader[]>(
+      "UPDATE users SET isDeleted = ? WHERE id = ? ",
+      [1, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res
+        .status(500)
+        .json({ message: "Internal server error", success: false });
+    }
+
+    res.status(200).json({
+      message: "user deleted successfully",
+      success: true,
+      data: responseDTO,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "internal server error", success: false, error });
   }
 };
