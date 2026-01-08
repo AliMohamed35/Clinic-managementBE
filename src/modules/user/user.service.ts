@@ -1,5 +1,6 @@
 import { type Request, type Response } from "express";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
+import { db } from "../../DB/connection.ts";
 import type {
   CreateUserDTO,
   logInResponseDTO,
@@ -7,11 +8,8 @@ import type {
   User,
   UserResponseDTO,
 } from "../../DB/models/user/user.types.ts";
-import { db } from "../../DB/connection.ts";
 import { comparePassword, hashPassword } from "../../utils/hash/hash.ts";
-import { generateToken } from "../../utils/jwt/jwt.ts";
 import { generateOTP } from "../../utils/otp/index.ts";
-import { sendMail } from "../../utils/mail/nodemailer.ts";
 
 // register new user
 export const register = async (req: Request, res: Response) => {
@@ -52,13 +50,13 @@ export const register = async (req: Request, res: Response) => {
       ]
     );
 
-    if(userData.email){
-      await sendMail({
-        to: userData.email,
-        subject: 'Email verification',
-        html: `<p>Your otp to verify your account is ${otp}</p>`, 
-      })
-    }
+    // if (userData.email) {
+    //   await sendMail({
+    //     to: userData.email,
+    //     subject: "Email verification",
+    //     html: `<p>Your otp to verify your account is ${otp}</p>`,
+    //   });
+    // }
 
     // set Response DTO
     const responseDTO: UserResponseDTO = {
@@ -80,7 +78,7 @@ export const register = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: "Internal server error",
-      error
+      error,
     });
   }
 };
@@ -164,7 +162,7 @@ export const logout = async (req: Request, res: Response) => {
 };
 
 // get all users
-export const getAllusers = async (req: Request, res: Response) => {
+export const getAllusers = async (res: Response) => {
   // Select query
   const returnedUsers = await db.query<RowDataPacket[]>("SELECT * FROM users");
 
@@ -403,6 +401,7 @@ export const deleteUser = async (req: Request, res: Response) => {
   }
 };
 
+// delete user
 export const softDeleteUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -454,5 +453,121 @@ export const softDeleteUser = async (req: Request, res: Response) => {
     res
       .status(500)
       .json({ message: "internal server error", success: false, error });
+  }
+};
+
+// verify account
+export const verifyUser = async (req: Request, res: Response) => {
+  try {
+    // get otp from body
+    const { email, otp } = req.body;
+
+    // Validate input
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required", success: false });
+    }
+
+    // Convert OTP to number for comparison
+    const otpNumber = Number(otp);
+
+    // Find user by email first
+    const [result] = await db.query<User & RowDataPacket[]>(
+      "SELECT * FROM users WHERE email = ?",
+      [email]
+    );
+
+    // Check if user exists
+    if (result.length === 0) {
+      return res.status(404).json({ message: "User not found", success: false });
+    }
+
+    const user = result[0];
+
+    // Check if already verified
+    if (user.isVerified === 1) {
+      return res.status(400).json({ message: "User already verified, you can login", success: false });
+    }
+
+    // Check if OTP exists
+    if (!user.otp || !user.otpExpire) {
+      return res.status(400).json({ message: "No OTP found, please request a new one", success: false });
+    }
+
+    // Check if OTP matches (compare as numbers)
+    if (user.otp !== otpNumber) {
+      return res.status(400).json({ message: "Invalid OTP", success: false });
+    }
+
+    // Check if OTP has expired
+    const expireDate = new Date(user.otpExpire);
+    const dateNow = new Date();
+
+    if (dateNow > expireDate) {
+      return res.status(400).json({ message: "OTP expired, please resend new OTP", success: false });
+    }
+
+    // All checks passed - verify the user
+    await db.query<ResultSetHeader>(
+      "UPDATE users SET isVerified = 1, otp = NULL, otpExpire = NULL WHERE email = ?",
+      [email]
+    );
+
+    return res.status(200).json({ message: "Email verified successfully", success: true });
+
+  } catch (error) {
+    console.error("Verify user error:", error);
+    return res.status(500).json({ message: "Internal server error", success: false, error });
+  }
+};
+
+// resend OTP
+export const resendOTP = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    // Validate input
+    if (!email) {
+      return res.status(400).json({ message: "Email is required", success: false });
+    }
+
+    // Check user existence
+    const [result] = await db.query<User & RowDataPacket[]>(
+      "SELECT * FROM users WHERE email = ?",
+      [email]
+    );
+
+    if (result.length === 0) {
+      return res.status(404).json({ message: "User not found", success: false });
+    }
+
+    // Check if already verified
+    if (result[0].isVerified === 1) {
+      return res.status(400).json({ message: "User already verified, you can login", success: false });
+    }
+
+    // Generate new OTP
+    const { otp, otpExpire } = generateOTP();
+
+    // Update user with new OTP
+    await db.query<ResultSetHeader>(
+      "UPDATE users SET otp = ?, otpExpire = ? WHERE email = ?",
+      [otp, otpExpire, email]
+    );
+
+    // Log OTP for testing (remove in production)
+    console.log(`New OTP for ${email}: ${otp}`);
+
+    // if (email) {
+    //   await sendMail({
+    //     to: email,
+    //     subject: "Email verification",
+    //     html: `<p>Your otp to verify your account is ${otp}</p>`,
+    //   });
+    // }
+
+    return res.status(200).json({ message: "OTP sent successfully", success: true, otp });
+  } catch (error) {
+    console.error("Resend OTP error:", error);
+    return res.status(500).json({ message: "Internal server error", success: false, error });
   }
 };

@@ -1,3 +1,3 @@
-import userRouter from './user/user.controller.ts'
+import userRouter from "./user/user.controller.ts";
 
-export {userRouter};
+export { userRouter };
