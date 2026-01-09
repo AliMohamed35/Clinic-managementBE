@@ -11,6 +11,11 @@ const router = Router();
 router.post("/login", userService.login);
 router.post("/register", validate(userSchema, "body"), userService.register);
 router.post("/logout/:id", validate(userIdSchema, "params"), userService.logout);
+router.post("/verify", userService.verifyUser);
+
+// resend OTP
+router.post("/resend-otp", userService.resendOTP);
+
 
 // CRUDS
 router.get("/", userService.getAllusers);
