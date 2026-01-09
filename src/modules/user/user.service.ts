@@ -10,6 +10,7 @@ import type {
 } from "../../DB/models/user/user.types.ts";
 import { comparePassword, hashPassword } from "../../utils/hash/hash.ts";
 import { generateOTP } from "../../utils/otp/index.ts";
+import { generateToken } from "../../utils/jwt/jwt.ts";
 
 // register new user
 export const register = async (req: Request, res: Response) => {
@@ -105,10 +106,26 @@ export const login = async (req: Request, res: Response) => {
       .json({ message: "Invalid credentials", success: false });
   }
 
+  if(rows[0]?.isVerified === 0){
+     return res
+      .status(401)
+      .json({ message: "please verify your account first", success: false });
+  }
+
   const activateUser = await db.query<User & ResultSetHeader[]>(
     "UPDATE users SET isActive = 1, isDeleted = 0 WHERE email = ?",
     [email]
   );
+
+  const token = generateToken(rows[0].id);
+
+  // ✅ Set token in cookie
+  res.cookie("token", token, {
+    httpOnly: true, // Prevents JavaScript access (XSS protection)
+    secure: false,
+    sameSite: "strict", // CSRF protection
+    maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days in milliseconds
+  });
 
   const responseDTO: logInResponseDTO = {
     name: rows[0].name,
@@ -153,6 +170,8 @@ export const logout = async (req: Request, res: Response) => {
     email: rows[0].email,
     role: rows[0].role,
   };
+
+  res.clearCookie("token");
 
   return res.status(200).json({
     message: "user logged out successfully",
@@ -464,7 +483,9 @@ export const verifyUser = async (req: Request, res: Response) => {
 
     // Validate input
     if (!email || !otp) {
-      return res.status(400).json({ message: "Email and OTP are required", success: false });
+      return res
+        .status(400)
+        .json({ message: "Email and OTP are required", success: false });
     }
 
     // Convert OTP to number for comparison
@@ -478,19 +499,31 @@ export const verifyUser = async (req: Request, res: Response) => {
 
     // Check if user exists
     if (result.length === 0) {
-      return res.status(404).json({ message: "User not found", success: false });
+      return res
+        .status(404)
+        .json({ message: "User not found", success: false });
     }
 
     const user = result[0];
 
     // Check if already verified
     if (user.isVerified === 1) {
-      return res.status(400).json({ message: "User already verified, you can login", success: false });
+      return res
+        .status(400)
+        .json({
+          message: "User already verified, you can login",
+          success: false,
+        });
     }
 
     // Check if OTP exists
     if (!user.otp || !user.otpExpire) {
-      return res.status(400).json({ message: "No OTP found, please request a new one", success: false });
+      return res
+        .status(400)
+        .json({
+          message: "No OTP found, please request a new one",
+          success: false,
+        });
     }
 
     // Check if OTP matches (compare as numbers)
@@ -503,7 +536,12 @@ export const verifyUser = async (req: Request, res: Response) => {
     const dateNow = new Date();
 
     if (dateNow > expireDate) {
-      return res.status(400).json({ message: "OTP expired, please resend new OTP", success: false });
+      return res
+        .status(400)
+        .json({
+          message: "OTP expired, please resend new OTP",
+          success: false,
+        });
     }
 
     // All checks passed - verify the user
@@ -512,11 +550,14 @@ export const verifyUser = async (req: Request, res: Response) => {
       [email]
     );
 
-    return res.status(200).json({ message: "Email verified successfully", success: true });
-
+    return res
+      .status(200)
+      .json({ message: "Email verified successfully", success: true });
   } catch (error) {
     console.error("Verify user error:", error);
-    return res.status(500).json({ message: "Internal server error", success: false, error });
+    return res
+      .status(500)
+      .json({ message: "Internal server error", success: false, error });
   }
 };
 
@@ -527,7 +568,9 @@ export const resendOTP = async (req: Request, res: Response) => {
 
     // Validate input
     if (!email) {
-      return res.status(400).json({ message: "Email is required", success: false });
+      return res
+        .status(400)
+        .json({ message: "Email is required", success: false });
     }
 
     // Check user existence
@@ -537,12 +580,19 @@ export const resendOTP = async (req: Request, res: Response) => {
     );
 
     if (result.length === 0) {
-      return res.status(404).json({ message: "User not found", success: false });
+      return res
+        .status(404)
+        .json({ message: "User not found", success: false });
     }
 
     // Check if already verified
     if (result[0].isVerified === 1) {
-      return res.status(400).json({ message: "User already verified, you can login", success: false });
+      return res
+        .status(400)
+        .json({
+          message: "User already verified, you can login",
+          success: false,
+        });
     }
 
     // Generate new OTP
@@ -565,9 +615,13 @@ export const resendOTP = async (req: Request, res: Response) => {
     //   });
     // }
 
-    return res.status(200).json({ message: "OTP sent successfully", success: true, otp });
+    return res
+      .status(200)
+      .json({ message: "OTP sent successfully", success: true, otp });
   } catch (error) {
     console.error("Resend OTP error:", error);
-    return res.status(500).json({ message: "Internal server error", success: false, error });
+    return res
+      .status(500)
+      .json({ message: "Internal server error", success: false, error });
   }
 };
