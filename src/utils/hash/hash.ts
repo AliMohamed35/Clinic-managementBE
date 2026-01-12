@@ -1,9 +1,11 @@
 import bcrypt from "bcrypt";
 
-export const hashPassword = (password: string) => {
-  return bcrypt.hashSync(password, 10);
+// is CPU-intensive and blocks Node.js from handling other requests so we used await
+export const hashPassword = async (password: string) => {
+  return await bcrypt.hash(password, 10);
 };
 
-export const comparePassword = (password: string, reqPassword: string) => {
-  return bcrypt.compareSync(password, reqPassword);
+
+export const comparePassword = async (password: string, reqPassword: string) => {
+  return await bcrypt.compare(password, reqPassword);
 };
