@@ -2,11 +2,16 @@ import {
   InvalidCredentialsError,
   UserExistsError,
   UserNotFoundError,
+  UserNotVerifiedError,
+  UserAlreadyVerifiedError,
+  OTPNotFoundError,     
+  InvalidOTPError,       
+  OTPExpiredError,          
 } from "../../ExceptionHandler/customErrors.ts";
 import { comparePassword, hashPassword } from "../../utils/hash/hash.ts";
 import { generateToken } from "../../utils/jwt/jwt.ts";
 import { generateOTP } from "../../utils/otp/index.ts";
-import type { CreateUserDTO, UserResponseDTO } from "./user.dto.ts";
+import type { CreateUserData, LoginDTO, UserResponseDTO } from "./user.dto.ts";
 import { userRepository } from "./user.repository.ts";
 import type { User } from "./user.types.ts";
 
@@ -26,7 +31,7 @@ export class UserService {
     return users.map((user) => this.toResponseDTO(user));
   }
 
-  async register(userData: CreateUserDTO): Promise<UserResponseDTO> {
+  async register(userData: CreateUserData): Promise<UserResponseDTO> {
     const existingUser = await userRepository.findByEmail(userData.email);
 
     if (existingUser) {
@@ -77,7 +82,7 @@ export class UserService {
     }
 
     if (user.isVerified === 0) {
-      throw new Error("Please verify your account first");
+      throw new UserNotVerifiedError();
     }
 
     await userRepository.updateById(user.id, { isActive: 1, isDeleted: 0 });
@@ -108,13 +113,13 @@ export class UserService {
       throw new UserNotFoundError();
     }
     if (existingUser.isVerified === 1) {
-      throw new Error("User already verified, you can login");
+      throw new UserAlreadyVerifiedError();
     }
     if (!existingUser.otp || !existingUser.otpExpire) {
-      throw new Error("No OTP found, please request a new one");
+      throw new OTPNotFoundError();
     }
     if (existingUser.otp !== otp) {
-      throw new Error("Invalid OTP");
+      throw new InvalidOTPError();
     }
 
     const expireDate = new Date(existingUser.otpExpire);
@@ -134,7 +139,7 @@ export class UserService {
       throw new UserNotFoundError();
     }
     if (user.isVerified === 1) {
-      throw new Error("User already verified, you can login");
+      throw new UserAlreadyVerifiedError();
     }
 
     const { otp, otpExpire } = generateOTP();

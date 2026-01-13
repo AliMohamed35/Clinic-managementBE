@@ -1,8 +1,8 @@
 import type { ResultSetHeader } from "mysql2";
 import { db } from "../../DB/connection.ts";
-import type { User } from "../../DB/models/user/user.types.ts";
-import type { CreateUserDTO } from "./user.dto.ts";
-import { generateOTP } from "../../utils/otp/index.ts";
+import type { User } from "../user/user.types.ts";
+import type { CreateUserData } from "./user.dto.ts";
+
 
 export class UserRepository {
   async findById(id: number): Promise<User | null> {
@@ -25,7 +25,7 @@ export class UserRepository {
     return rows;
   }
 
-  async create(userData: CreateUserDTO): Promise<number> {
+  async create(userData: CreateUserData): Promise<number> {
     const [result] = await db.execute<ResultSetHeader>(
       `INSERT INTO users (email, name, password, role, isActive, isDeleted, isVerified, otp, otpExpire) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -107,7 +107,6 @@ export class UserRepository {
     );
     return rows.affectedRows > 0;
   }
-
 }
 
 export const userRepository = new UserRepository();
