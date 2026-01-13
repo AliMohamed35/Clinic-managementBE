@@ -3,6 +3,11 @@ import {
   UserNotFoundError,
   UserExistsError,
   InvalidCredentialsError,
+  UserNotVerifiedError,
+  UserAlreadyVerifiedError,
+  OTPNotFoundError,
+  InvalidOTPError,
+  OTPExpiredError,
 } from "../ExceptionHandler/customErrors.ts";
 
 export const errorHandler = (
@@ -24,6 +29,22 @@ export const errorHandler = (
 
   if (error instanceof InvalidCredentialsError) {
     return res.status(401).json({ success: false, message: error.message });
+  }
+
+  if (error instanceof UserNotVerifiedError) {
+    return res.status(401).json({ success: false, message: error.message });
+  }
+  if (error instanceof UserAlreadyVerifiedError) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+  if (error instanceof OTPNotFoundError) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+  if (error instanceof InvalidOTPError) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+  if (error instanceof OTPExpiredError) {
+    return res.status(400).json({ success: false, message: error.message });
   }
 
   // Unknown error

@@ -12,6 +12,9 @@ router.post("/logout", userController.logout.bind(userController));
 router.post("/resend-otp", userController.resendOTP.bind(userController));
 router.post("/verify-otp", userController.verifyUser.bind(userController))
 
+// update
+
+
 // Protected routes
 router.get("/", auth, userController.getAllUsers.bind(userController));
 router.get("/:id", auth, validate(userIdSchema, "params"), userController.getUserById.bind(userController));

@@ -42,6 +42,7 @@ export class UserController {
     try {
       const { email } = req.body;
       const  user = await userService.logout(email);
+      res.clearCookie("token");
 
       return res.status(200).json({
         success: true,
