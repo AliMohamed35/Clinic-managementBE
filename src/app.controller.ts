@@ -1,4 +1,4 @@
-import { errorHandler } from "./middlewares/errorHandler.ts";
+import { errorHandler } from "./ExceptionHandler/errorHandler.ts";
 import { userRouter, appointmentRouter } from "./modules/index.ts";
 import cookieParser from "cookie-parser";
 

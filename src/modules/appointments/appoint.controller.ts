@@ -1,25 +1,41 @@
-import { Router } from "express";
-import * as appointService from "../appointments/appoint.service.ts";
-import { authorizeRoles } from "../../middlewares/auth/roleCheck.middleware.ts";
-import { auth } from "../../middlewares/auth/auth.middleware.ts";
-import { appointment, userSchema, validate } from "../../middlewares/validation/joi.ts";
+import type { Request, Response, NextFunction } from "express";
+import { appointmentService } from "./appoint.service.ts";
+import type { CreateAppointmentDTO } from "./appoint.dto.ts";
 
-const router = Router();
+export class AppointmentController {
+  async createAppointment(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = parseInt(req.params.id ?? '', 10);
+      if (isNaN(userId)) {
+        return res.status(400).json({
+          message: "Invalid user ID!",
+          success: false,
+        });
+      }
 
-router.post(
-  "/add-appointment/:patientId",
-  auth,
-  authorizeRoles("patient"), // only patients can register
-  appointService.addAppointment
-);
+      const { doctor_id, appointment_date, appointment_time, status } = req.body;
 
-router.get("/", auth, appointService.getAllAppointments);
+      const appointmentData: CreateAppointmentDTO = {
+        doctor_id: Number(doctor_id),
+        appointment_date,
+        appointment_time,
+        status: status || undefined,
+      };
 
-// router.get(
-//   "/get-all-appointments",
-//   auth,
-//   authorizeRoles("patient"), // only patients can register
-//   appointService.addAppointment
-// );
+      const created = await appointmentService.createAppointment(
+        userId,
+        appointmentData
+      );
 
-export default router;
+      return res.status(201).json({
+        message: "Appointment created successfully!",
+        success: true,
+        data: created,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+}
+
+export const appointmentController = new AppointmentController();

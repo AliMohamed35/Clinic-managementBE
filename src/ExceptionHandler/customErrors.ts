@@ -53,3 +53,10 @@ export class OTPExpiredError    extends Error{
     this.name = "OTPExpiredError"
   }
 }
+
+export class AppointmentAlreadyExistError extends Error{
+  constructor(message = "Appointment already exist!"){
+    super(message);
+    this.name = "AppointmentAlreadyExistError"
+  }
+}

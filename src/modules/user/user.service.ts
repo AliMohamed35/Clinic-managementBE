@@ -126,7 +126,7 @@ export class UserService {
     const dateNow = new Date();
 
     if (dateNow > expireDate) {
-      throw new Error("OTP expired, please resend new OTP");
+      throw new OTPExpiredError();
     }
 
     await userRepository.verifyUser(email);
