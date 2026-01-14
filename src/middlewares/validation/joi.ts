@@ -49,7 +49,7 @@ export const userSchema = joi.object({
   isVerified: joi.number().valid(true, false).default(false),
 });
 
-export const appointment = joi.object({
+export const appointmentSchema = joi.object({
     doctorId: joi.number().required(),
     appointment_date: joi.string(),
     appointment_time: joi.string(),
