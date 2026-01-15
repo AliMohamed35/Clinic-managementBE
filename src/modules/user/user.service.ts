@@ -4,14 +4,19 @@ import {
   UserNotFoundError,
   UserNotVerifiedError,
   UserAlreadyVerifiedError,
-  OTPNotFoundError,     
-  InvalidOTPError,       
-  OTPExpiredError,          
+  OTPNotFoundError,
+  InvalidOTPError,
+  OTPExpiredError,
+  UserAlreadySoftDeletedError,
 } from "../../ExceptionHandler/customErrors.ts";
 import { comparePassword, hashPassword } from "../../utils/hash/hash.ts";
 import { generateToken } from "../../utils/jwt/jwt.ts";
 import { generateOTP } from "../../utils/otp/index.ts";
-import type { CreateUserData, LoginDTO, UserResponseDTO } from "./user.dto.ts";
+import type {
+  CreateUserData,
+  UpdateUserDTO,
+  UserResponseDTO,
+} from "./user.dto.ts";
 import { userRepository } from "./user.repository.ts";
 import type { User } from "./user.types.ts";
 
@@ -146,6 +151,58 @@ export class UserService {
     await userRepository.updateByEmail(email, { otp, otpExpire });
 
     return otp;
+  }
+
+  async updateUser(
+    id: number,
+    userData: UpdateUserDTO
+  ): Promise<UserResponseDTO> {
+    // check existence
+    const existingUser = await userRepository.findById(id);
+
+    if (!existingUser) throw new UserNotFoundError();
+
+    const updateData: Record<string, unknown> = {
+      ...(userData.name && { name: userData.name }),
+      ...(userData.email && { email: userData.email }),
+      ...(userData.role && { role: userData.role }),
+      ...(userData.password && {
+        password: await hashPassword(userData.password),
+      }),
+    };
+
+    if (userData.email && userData.email !== existingUser.email) {
+      const emailTaken = await userRepository.findByEmail(userData.email);
+      if (emailTaken) throw new UserExistsError();
+    }
+
+    await userRepository.updateById(id, updateData);
+
+    const updatedUser = await userRepository.findById(id);
+
+    return this.toResponseDTO(updatedUser!);
+  }
+
+  async softDeleteUser(id: number): Promise<void> {
+    const existingUser = await userRepository.findById(id);
+
+    if (!existingUser) throw new UserNotFoundError();
+
+    if(existingUser.isDeleted === 1){
+      throw new UserAlreadySoftDeletedError();
+    }
+
+    await userRepository.softDelete(id);
+  }
+
+  async deleteUser(id: number): Promise<number> {
+    const existingUser = await userRepository.findById(id);
+
+    if (!existingUser) throw new UserNotFoundError();
+
+    const deletedUser = await userRepository.deleteById(id);
+
+    return deletedUser;
   }
 
   // Private helper to convert User to DTO (strips sensitive fields)

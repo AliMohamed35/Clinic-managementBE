@@ -1,7 +1,7 @@
 import type { ResultSetHeader } from "mysql2";
 import { db } from "../../DB/connection.ts";
 import type { User } from "../user/user.types.ts";
-import type { CreateUserData } from "./user.dto.ts";
+import type { CreateUserData} from "./user.dto.ts";
 
 
 export class UserRepository {
@@ -92,12 +92,19 @@ export class UserRepository {
     return result.affectedRows > 0;
   }
 
-  async deleteById(id: number): Promise<boolean> {
+  async deleteById(id: number): Promise<number> {
     const [result] = await db.query<ResultSetHeader>(
       "DELETE FROM users WHERE id = ?",
       [id]
     );
-    return result.affectedRows > 0;
+    return result.insertId;
+  }
+  
+   async softDelete(id: number): Promise<void> {
+    const [result] = await db.query<ResultSetHeader>(
+      "UPDATE users SET isActive = 0, isDeleted = 1 WHERE id = ?",
+      [id]
+    );
   }
 
   async verifyUser(email: string): Promise<boolean> {
@@ -106,6 +113,15 @@ export class UserRepository {
       [email]
     );
     return rows.affectedRows > 0;
+  }
+
+  async permanentlyDeleteSoftDeleted(): Promise<number> {
+    // Delete users where isDeleted = 1
+    const [result] = await db.query<ResultSetHeader>(
+      "DELETE FROM users WHERE isDeleted = 1"
+    );
+    
+    return result.affectedRows ?? 0;
   }
 }
 

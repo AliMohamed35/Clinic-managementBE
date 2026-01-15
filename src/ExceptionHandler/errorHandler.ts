@@ -9,6 +9,7 @@ import {
   InvalidOTPError,
   OTPExpiredError,
   AppointmentAlreadyExistError,
+  UserAlreadySoftDeletedError,
 } from "./customErrors.ts";
 
 export const errorHandler = (
@@ -48,6 +49,9 @@ export const errorHandler = (
     return res.status(400).json({ success: false, message: error.message });
   }
   if (error instanceof AppointmentAlreadyExistError) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+  if (error instanceof UserAlreadySoftDeletedError) {
     return res.status(400).json({ success: false, message: error.message });
   }
 

@@ -60,3 +60,10 @@ export class AppointmentAlreadyExistError extends Error{
     this.name = "AppointmentAlreadyExistError"
   }
 }
+
+export class UserAlreadySoftDeletedError extends Error{
+  constructor(message = "User already soft deleted!"){
+    super(message);
+    this.name = "UserAlreadySoftDeletedError"
+  }
+}

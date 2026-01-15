@@ -15,6 +15,7 @@ function bootstrap(app: any, express: any): void {
   app.use("/user", userRouter);
   app.use("/appointment", appointmentRouter);
 
+
   // error handler
   app.use(errorHandler);
 }
