@@ -21,6 +21,7 @@
     "joi": "^18.0.2",
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.16.0",
+    "node-cron": "^4.2.1",
     "nodemailer": "^7.0.12"
   },
   "devDependencies": {
@@ -29,8 +30,10 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.0.3",
+    "@types/node-cron": "^3.0.11",
     "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
 }
