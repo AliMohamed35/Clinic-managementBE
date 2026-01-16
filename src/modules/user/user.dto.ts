@@ -1,9 +1,11 @@
+import type { UserRoles } from "./user.types.ts";
+
 // What CLIENT sends for registration
 export interface RegisterUserDTO {
   name: string;
   email: string;
   password: string;
-  role: 'doctor' | 'patient';
+  role: UserRoles;
 }
 
 export interface CreateUserData {

@@ -2,6 +2,7 @@ import joi from "joi";
 
 import type { Request, Response, NextFunction } from "express";
 import type { ObjectSchema } from "joi";
+import { UserRoles } from "../../modules/user/user.types.ts";
 
 export const validate =
   (schema: ObjectSchema, property: "body" | "params" | "query" = "body") =>
@@ -40,7 +41,7 @@ export const userSchema = joi.object({
     tlds: { allow: ["com", "net"] },
   }),
 
-  role: joi.string().valid("doctor", "patient").required(),
+  role: joi.string().valid(...Object.values(UserRoles)).required(),
 
   isActive: joi.number().valid(0, 1).default(0),
 

@@ -7,13 +7,14 @@ import {
 } from "../../middlewares/validation/joi.ts";
 import { auth } from "../../middlewares/auth/auth.middleware.ts";
 
+
 const router = Router();
 
 // AUTH
 router.post(
   "/register",
-  validate(userSchema, "body"),
-  userController.register.bind(userController)
+  validate(userSchema, "body"), 
+  userController.register.bind(userController), 
 );
 router.post("/login", userController.login.bind(userController));
 router.post("/logout", auth, userController.logout.bind(userController));
