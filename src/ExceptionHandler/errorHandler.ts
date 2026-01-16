@@ -11,6 +11,7 @@ import {
   AppointmentAlreadyExistError,
   UserAlreadySoftDeletedError,
 } from "./customErrors.ts";
+import logger from "../utils/logs/logger.ts";
 
 export const errorHandler = (
   error: Error,
@@ -18,7 +19,6 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  console.error(`[ERROR] ${error.name}: ${error.message}`);
 
   // Handle known errors
   if (error instanceof UserNotFoundError) {
@@ -54,6 +54,8 @@ export const errorHandler = (
   if (error instanceof UserAlreadySoftDeletedError) {
     return res.status(400).json({ success: false, message: error.message });
   }
+
+  logger.error(`${error.name}: ${error.message}`);
 
   // Unknown error
   return res.status(500).json({

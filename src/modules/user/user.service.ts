@@ -11,6 +11,7 @@ import {
 } from "../../ExceptionHandler/customErrors.ts";
 import { comparePassword, hashPassword } from "../../utils/hash/hash.ts";
 import { generateToken } from "../../utils/jwt/jwt.ts";
+import logger from "../../utils/logs/logger.ts";
 import { generateOTP } from "../../utils/otp/index.ts";
 import type {
   CreateUserData,
@@ -47,6 +48,13 @@ export class UserService {
     const { otp, otpExpire } = generateOTP();
 
     // send OTP via email
+    // if (userData.email) {
+    //   await sendMail({
+    //     to: userData.email,
+    //     subject: "Veify your account",
+    //     html: `<p>Your otp to verify your account is ${otp}</p>`,
+    //   });
+    // }
 
     const hashedPassword = await hashPassword(userData.password);
 
@@ -60,6 +68,8 @@ export class UserService {
       isDeleted: 0,
       isVerified: 0,
     });
+
+    logger.info(`Registered user email: ${userData.email}`)
 
     return {
       id: userId,
@@ -85,10 +95,12 @@ export class UserService {
     const isMatch = await comparePassword(password, user.password);
 
     if (!isMatch) {
+      logger.warn(`Failed to login user: ${email}`)
       throw new InvalidCredentialsError();
     }
-
+    
     if (user.isVerified === 0) {
+      logger.warn(`User not verified: ${email}`)
       throw new UserNotVerifiedError();
     }
 
@@ -96,6 +108,8 @@ export class UserService {
 
     // generate token
     const token = generateToken(user.id);
+
+    logger.info(`User logged in: ${email}`)
 
     return {
       user: this.toResponseDTO(user),
@@ -150,6 +164,14 @@ export class UserService {
     }
 
     const { otp, otpExpire } = generateOTP();
+
+    // if (email) {
+    //   await sendMail({
+    //     to: email,
+    //     subject: "re-sent OTP",
+    //     html: `<p>Your otp to verify your account is ${otp}</p>`,
+    //   });
+    // }
     await userRepository.updateByEmail(email, { otp, otpExpire });
 
     return otp;
@@ -190,23 +212,26 @@ export class UserService {
 
     if (!existingUser) throw new UserNotFoundError();
 
-    if(existingUser.isDeleted === 1){
+    if (existingUser.isDeleted === 1) {
       throw new UserAlreadySoftDeletedError();
     }
 
     await userRepository.softDelete(id);
-  }
 
+    logger.info(`User soft deleted: ${existingUser.email}`)
+  }
+  
   async deleteUser(id: number): Promise<number> {
     const existingUser = await userRepository.findById(id);
-
+    
     if (!existingUser) throw new UserNotFoundError();
-
+    
     const deletedUser = await userRepository.deleteById(id);
-
+    
+    logger.info(`User deleted: ${existingUser.email}`)
     return deletedUser;
   }
-
+  
   // Private helper to convert User to DTO (strips sensitive fields)
   private toResponseDTO(user: User): UserResponseDTO {
     return {
