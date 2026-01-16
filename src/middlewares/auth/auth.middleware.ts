@@ -1,8 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
 import type { RowDataPacket } from "mysql2";
 import { db } from "../../DB/connection.ts";
-import cookieParser from "cookie-parser";
+import { verifyToken } from "../../utils/jwt/jwt.ts";
 
 interface AuthRequest extends Request {
   user?: {
@@ -24,8 +23,14 @@ export const auth = async (
     // Get token from cookies
     const token = req.cookies?.token;
 
-    // Verify token
-    const decoded = jwt.verify(token, "secretkey") as JwtPayload;
+    if (!token) {
+      return res
+        .status(401)
+        .json({ message: "No token provided. Access denied." });
+    }
+
+    // Verify token using centralized utility
+    const decoded = verifyToken(token) as JwtPayload;
 
     // Get user from database
     const [users] = await db.query<RowDataPacket[]>(

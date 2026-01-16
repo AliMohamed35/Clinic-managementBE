@@ -34,14 +34,28 @@ export const userSchema = joi.object({
 
   name: joi.string().alphanum().min(3).max(30).required(),
 
-  password: joi.string().pattern(new RegExp("^[a-zA-Z0-9]{8,15}$")),
+  password: joi
+    .string()
+    .min(8)
+    .max(255)
+    .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])"))
+    .required()
+    .messages({
+      "string.pattern.base":
+        "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
+      "string.min": "Password should be at least 8 characters long",
+      "string.empty": "Password cannot be empty",
+    }),
 
   email: joi.string().email({
     minDomainSegments: 2,
     tlds: { allow: ["com", "net"] },
   }),
 
-  role: joi.string().valid(...Object.values(UserRoles)).required(),
+  role: joi
+    .string()
+    .valid(...Object.values(UserRoles))
+    .required(),
 
   isActive: joi.number().valid(0, 1).default(0),
 
@@ -51,7 +65,7 @@ export const userSchema = joi.object({
 });
 
 export const appointmentSchema = joi.object({
-    doctorId: joi.number().required(),
-    appointment_date: joi.string(),
-    appointment_time: joi.string(),
-})
+  doctorId: joi.number().required(),
+  appointment_date: joi.string(),
+  appointment_time: joi.string(),
+});
