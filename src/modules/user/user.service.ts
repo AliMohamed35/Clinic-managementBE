@@ -46,6 +46,8 @@ export class UserService {
     // generate OTP
     const { otp, otpExpire } = generateOTP();
 
+    // send OTP via email
+
     const hashedPassword = await hashPassword(userData.password);
 
     // create new user
