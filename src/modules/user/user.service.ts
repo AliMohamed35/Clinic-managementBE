@@ -8,6 +8,8 @@ import {
   InvalidOTPError,
   OTPExpiredError,
   UserAlreadySoftDeletedError,
+  EnteredSamePassError,
+  InvalidPasswordError,
 } from "../../ExceptionHandler/customErrors.ts";
 import { comparePassword, hashPassword } from "../../utils/hash/hash.ts";
 import { generateToken } from "../../utils/jwt/jwt.ts";
@@ -24,6 +26,16 @@ import type { User } from "./user.types.ts";
 export class UserService {
   async getUserById(id: number): Promise<UserResponseDTO> {
     const user = await userRepository.findById(id);
+    if (!user) {
+      throw new UserNotFoundError();
+    }
+
+    // transform to DTO
+    return this.toResponseDTO(user);
+  }
+
+  async getUserByEmail(email: string): Promise<UserResponseDTO> {
+    const user = await userRepository.findByEmail(email);
     if (!user) {
       throw new UserNotFoundError();
     }
@@ -69,7 +81,7 @@ export class UserService {
       isVerified: 0,
     });
 
-    logger.info(`Registered user email: ${userData.email}`)
+    logger.info(`Registered user email: ${userData.email}`);
 
     return {
       id: userId,
@@ -84,7 +96,7 @@ export class UserService {
 
   async login(
     email: string,
-    password: string
+    password: string,
   ): Promise<{ user: UserResponseDTO; token: string }> {
     const user = await userRepository.findByEmail(email);
 
@@ -95,12 +107,12 @@ export class UserService {
     const isMatch = await comparePassword(password, user.password);
 
     if (!isMatch) {
-      logger.warn(`Failed to login user: ${email}`)
+      logger.warn(`Failed to login user: ${email}`);
       throw new InvalidCredentialsError();
     }
-    
+
     if (user.isVerified === 0) {
-      logger.warn(`User not verified: ${email}`)
+      logger.warn(`User not verified: ${email}`);
       throw new UserNotVerifiedError();
     }
 
@@ -109,7 +121,7 @@ export class UserService {
     // generate token
     const token = generateToken(user.id);
 
-    logger.info(`User logged in: ${email}`)
+    logger.info(`User logged in: ${email}`);
 
     return {
       user: this.toResponseDTO(user),
@@ -179,7 +191,7 @@ export class UserService {
 
   async updateUser(
     id: number,
-    userData: UpdateUserDTO
+    userData: UpdateUserDTO,
   ): Promise<UserResponseDTO> {
     // check existence
     const existingUser = await userRepository.findById(id);
@@ -218,20 +230,49 @@ export class UserService {
 
     await userRepository.softDelete(id);
 
-    logger.info(`User soft deleted: ${existingUser.email}`)
+    logger.info(`User soft deleted: ${existingUser.email}`);
   }
-  
+
   async deleteUser(id: number): Promise<number> {
     const existingUser = await userRepository.findById(id);
-    
+
     if (!existingUser) throw new UserNotFoundError();
-    
+
     const deletedUser = await userRepository.deleteById(id);
-    
-    logger.info(`User deleted: ${existingUser.email}`)
+
+    logger.info(`User deleted: ${existingUser.email}`);
     return deletedUser;
   }
-  
+
+  async changePassword(
+    email: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<UserResponseDTO> {
+    // user existence
+    const existingUser = await userRepository.findByEmail(email);
+
+    if (!existingUser) {
+      throw new UserNotFoundError();
+    }
+
+    const isCurrentValid = await comparePassword(
+      currentPassword,
+      existingUser.password,
+    );
+
+    if (!isCurrentValid) {
+      throw new InvalidPasswordError();
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+
+    existingUser.password = hashedPassword;
+    await userRepository.updateByEmail(email, {password: hashedPassword});
+
+    return this.toResponseDTO(existingUser);
+  }
+
   // Private helper to convert User to DTO (strips sensitive fields)
   private toResponseDTO(user: User): UserResponseDTO {
     return {
