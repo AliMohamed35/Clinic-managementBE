@@ -66,35 +66,6 @@ export class UserController {
     }
   }
 
-  async getUserById(req: Request, res: Response, next: NextFunction) {
-    try {
-      const id = parseId(req.params.id);
-      const user = await userService.getUserById(id);
-
-      return res.status(200).json({
-        success: true,
-        message: "User retrieved successfully",
-        data: user,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async getAllUsers(req: Request, res: Response, next: NextFunction) {
-    try {
-      const users = await userService.getAllUsers();
-
-      return res.status(200).json({
-        success: true,
-        message: "Users retrieved successfully",
-        data: users,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
   async verifyUser(req: Request, res: Response, next: NextFunction) {
     try {
       const { email, otp } = req.body;
@@ -146,7 +117,9 @@ export class UserController {
       const id = parseId(req.params.id);
       await userService.deleteUser(id);
 
-      return res.status(200).json({message:"User deleted successfully", success: true});
+      return res
+        .status(200)
+        .json({ message: "User deleted successfully", success: true });
     } catch (error) {
       next(error);
     }
@@ -157,7 +130,60 @@ export class UserController {
       const id = parseId(req.params.id);
       await userService.softDeleteUser(id);
 
-      return res.status(200).json({message:"User soft deleted successfully", success: true});
+      return res
+        .status(200)
+        .json({ message: "User soft deleted successfully", success: true });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getUserById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = parseId(req.params.id);
+      const user = await userService.getUserById(id);
+
+      return res.status(200).json({
+        success: true,
+        message: "User retrieved successfully",
+        data: user,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getAllUsers(req: Request, res: Response, next: NextFunction) {
+    try {
+      const users = await userService.getAllUsers();
+
+      return res.status(200).json({
+        success: true,
+        message: "Users retrieved successfully",
+        data: users,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async changePassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email, currentPassword, newPassword } = req.body;
+
+      const changed = await userService.changePassword(
+        email,
+        currentPassword,
+        newPassword,
+      );
+
+      return res
+        .status(201)
+        .json({
+          message: "Password changed successfully!",
+          success: true,
+          data: changed,
+        });
     } catch (error) {
       next(error);
     }

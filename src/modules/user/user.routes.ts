@@ -20,6 +20,7 @@ router.post("/login", userController.login.bind(userController));
 router.post("/logout", auth, userController.logout.bind(userController));
 router.post("/resend-otp", userController.resendOTP.bind(userController));
 router.post("/verify-otp", userController.verifyUser.bind(userController));
+router.post("/change-password", userController.changePassword.bind(userController));
 
 // update
 router.put(

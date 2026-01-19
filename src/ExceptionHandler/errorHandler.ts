@@ -10,6 +10,8 @@ import {
   OTPExpiredError,
   AppointmentAlreadyExistError,
   UserAlreadySoftDeletedError,
+  EnteredSamePassError,
+  InvalidPasswordError,
 } from "./customErrors.ts";
 import logger from "../utils/logs/logger.ts";
 
@@ -52,6 +54,12 @@ export const errorHandler = (
     return res.status(400).json({ success: false, message: error.message });
   }
   if (error instanceof UserAlreadySoftDeletedError) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+  if (error instanceof EnteredSamePassError) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+  if (error instanceof InvalidPasswordError) {
     return res.status(400).json({ success: false, message: error.message });
   }
 

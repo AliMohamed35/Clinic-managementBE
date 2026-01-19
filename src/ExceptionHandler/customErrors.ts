@@ -67,3 +67,17 @@ export class UserAlreadySoftDeletedError extends Error{
     this.name = "UserAlreadySoftDeletedError"
   }
 }
+
+export class EnteredSamePassError extends Error{
+  constructor(message = "You entered the same password!"){
+    super(message);
+    this.name = "EnteredSamePassError"
+  }
+}
+
+export class InvalidPasswordError extends Error{
+  constructor(message = "Invalid password!"){
+    super(message);
+    this.name = "InvalidPasswordError"
+  }
+}
