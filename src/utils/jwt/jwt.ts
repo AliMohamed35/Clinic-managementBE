@@ -1,9 +1,11 @@
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your_super_secret_jwt_key_change_this_in_production";
+const JWT_SECRET =
+  process.env.JWT_SECRET ||
+  "secretkeyforjwt";
 
 // 3 days in seconds
-const maxAge = 3 * 24 * 60 * 60;
+const maxAge = 15 * 60;
 
 export const generateToken = (id: number): string => {
   return jwt.sign({ id }, JWT_SECRET, { expiresIn: maxAge });

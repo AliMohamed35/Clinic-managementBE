@@ -54,12 +54,6 @@ export class OTPExpiredError    extends Error{
   }
 }
 
-export class AppointmentAlreadyExistError extends Error{
-  constructor(message = "Appointment already exist!"){
-    super(message);
-    this.name = "AppointmentAlreadyExistError"
-  }
-}
 
 export class UserAlreadySoftDeletedError extends Error{
   constructor(message = "User already soft deleted!"){
@@ -79,5 +73,27 @@ export class InvalidPasswordError extends Error{
   constructor(message = "Invalid password!"){
     super(message);
     this.name = "InvalidPasswordError"
+  }
+}
+
+export class UserAlreadyLoggedInError extends Error{
+  constructor(message = "user already logged in!"){
+    super(message);
+    this.name = "UserAlreadyLoggedInError"
+  }
+}
+
+
+export class AppNotFoundError extends Error{
+  constructor(message = "Appointment not found!"){
+    super(message);
+    this.name = "AppNotFoundError"
+  }
+}
+
+export class AppointmentAlreadyExistError extends Error{
+  constructor(message = "Appointment already exist!"){
+    super(message);
+    this.name = "AppointmentAlreadyExistError"
   }
 }
