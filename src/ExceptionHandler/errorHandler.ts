@@ -12,6 +12,8 @@ import {
   UserAlreadySoftDeletedError,
   EnteredSamePassError,
   InvalidPasswordError,
+  AppNotFoundError,
+  UserAlreadyLoggedInError,
 } from "./customErrors.ts";
 import logger from "../utils/logs/logger.ts";
 
@@ -26,23 +28,23 @@ export const errorHandler = (
   if (error instanceof UserNotFoundError) {
     return res.status(404).json({ success: false, message: error.message });
   }
-
   if (error instanceof UserExistsError) {
-    return res.status(409).json({ success: false, message: error.message });
+    return res.status(400).json({ success: false, message: error.message });
   }
-
   if (error instanceof InvalidCredentialsError) {
-    return res.status(401).json({ success: false, message: error.message });
+    return res.status(400).json({ success: false, message: error.message });
   }
-
   if (error instanceof UserNotVerifiedError) {
-    return res.status(401).json({ success: false, message: error.message });
+    return res.status(406).json({ success: false, message: error.message });
   }
   if (error instanceof UserAlreadyVerifiedError) {
     return res.status(400).json({ success: false, message: error.message });
   }
-  if (error instanceof OTPNotFoundError) {
+  if (error instanceof UserAlreadyLoggedInError) {
     return res.status(400).json({ success: false, message: error.message });
+  }
+  if (error instanceof OTPNotFoundError) {
+    return res.status(404).json({ success: false, message: error.message });
   }
   if (error instanceof InvalidOTPError) {
     return res.status(400).json({ success: false, message: error.message });
@@ -57,9 +59,17 @@ export const errorHandler = (
     return res.status(400).json({ success: false, message: error.message });
   }
   if (error instanceof EnteredSamePassError) {
-    return res.status(400).json({ success: false, message: error.message });
+    return res.status(406).json({ success: false, message: error.message });
   }
   if (error instanceof InvalidPasswordError) {
+    return res.status(406).json({ success: false, message: error.message });
+  }
+
+  // APPOINTMENTS
+  if (error instanceof AppNotFoundError) {
+    return res.status(404).json({ success: false, message: error.message });
+  }
+  if (error instanceof AppointmentAlreadyExistError) {
     return res.status(400).json({ success: false, message: error.message });
   }
 

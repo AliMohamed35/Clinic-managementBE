@@ -40,7 +40,7 @@ export class UserController {
         maxAge: 3 * 24 * 60 * 60 * 1000,
       });
 
-      return res.status(200).json({
+      return res.status(202).json({
         success: true,
         message: "Login successful",
         data: user,
@@ -56,7 +56,7 @@ export class UserController {
       const user = await userService.logout(email);
       res.clearCookie("token");
 
-      return res.status(200).json({
+      return res.status(202).json({
         success: true,
         message: "Logout successful",
         data: user,
@@ -143,7 +143,7 @@ export class UserController {
       const id = parseId(req.params.id);
       const user = await userService.getUserById(id);
 
-      return res.status(200).json({
+      return res.status(302).json({
         success: true,
         message: "User retrieved successfully",
         data: user,
@@ -157,7 +157,7 @@ export class UserController {
     try {
       const users = await userService.getAllUsers();
 
-      return res.status(200).json({
+      return res.status(302).json({
         success: true,
         message: "Users retrieved successfully",
         data: users,

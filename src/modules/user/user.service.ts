@@ -1,15 +1,15 @@
 import {
   InvalidCredentialsError,
+  InvalidOTPError,
+  InvalidPasswordError,
+  OTPExpiredError,
+  OTPNotFoundError,
+  UserAlreadyLoggedInError,
+  UserAlreadySoftDeletedError,
+  UserAlreadyVerifiedError,
   UserExistsError,
   UserNotFoundError,
   UserNotVerifiedError,
-  UserAlreadyVerifiedError,
-  OTPNotFoundError,
-  InvalidOTPError,
-  OTPExpiredError,
-  UserAlreadySoftDeletedError,
-  EnteredSamePassError,
-  InvalidPasswordError,
 } from "../../ExceptionHandler/customErrors.ts";
 import { comparePassword, hashPassword } from "../../utils/hash/hash.ts";
 import { generateToken } from "../../utils/jwt/jwt.ts";
