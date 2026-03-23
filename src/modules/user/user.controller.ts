@@ -1,8 +1,7 @@
-// user.controller.ts - Should be like this:
 import type { Request, Response, NextFunction } from "express";
 import { userService } from "./user.service.ts";
+import type { AuthRequest } from "../../middlewares/auth/auth.middleware.ts";
 
-// Helper function to safely parse ID from request params
 function parseId(id: string | undefined): number {
   if (id === undefined) {
     throw new Error("ID parameter is required");
@@ -15,19 +14,6 @@ function parseId(id: string | undefined): number {
 }
 
 export class UserController {
-  async register(req: Request, res: Response, next: NextFunction) {
-    try {
-      const user = await userService.register(req.body);
-      return res.status(201).json({
-        success: true,
-        message: "User created successfully",
-        data: user,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
   async login(req: Request, res: Response, next: NextFunction) {
     try {
       const { email, password } = req.body;
@@ -50,16 +36,15 @@ export class UserController {
     }
   }
 
-  async logout(req: Request, res: Response, next: NextFunction) {
+  async logout(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { email } = req.body;
-      const user = await userService.logout(email);
+      await userService.logout(email, req.user!.id);
       res.clearCookie("token");
 
       return res.status(202).json({
         success: true,
         message: "Logout successful",
-        data: user,
       });
     } catch (error) {
       next(error);
@@ -69,12 +54,11 @@ export class UserController {
   async verifyUser(req: Request, res: Response, next: NextFunction) {
     try {
       const { email, otp } = req.body;
-      const verifiedUser = await userService.verifyUser(email, otp);
+      await userService.verifyUser(email, otp);
 
       return res.status(200).json({
         message: "User verified successfully",
         success: true,
-        verifiedUser,
       });
     } catch (error) {
       next(error);
@@ -96,14 +80,14 @@ export class UserController {
     }
   }
 
-  async updateUser(req: Request, res: Response, next: NextFunction) {
+  async updateUser(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const id = parseId(req.params.id);
       const userData = req.body;
-      const updatedUser = await userService.updateUser(id, userData);
+      const updatedUser = await userService.updateUser(id, userData, req.user!.id);
 
       return res.status(200).json({
-        message: "User updated succefully",
+        message: "User updated successfully",
         success: true,
         data: updatedUser,
       });
@@ -112,10 +96,10 @@ export class UserController {
     }
   }
 
-  async deleteUser(req: Request, res: Response, next: NextFunction) {
+  async deleteUser(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const id = parseId(req.params.id);
-      await userService.deleteUser(id);
+      await userService.deleteUser(id, req.user!.id);
 
       return res
         .status(200)
@@ -125,10 +109,10 @@ export class UserController {
     }
   }
 
-  async softDeleteUser(req: Request, res: Response, next: NextFunction) {
+  async softDeleteUser(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const id = parseId(req.params.id);
-      await userService.softDeleteUser(id);
+      await userService.softDeleteUser(id, req.user!.id);
 
       return res
         .status(200)
@@ -143,7 +127,7 @@ export class UserController {
       const id = parseId(req.params.id);
       const user = await userService.getUserById(id);
 
-      return res.status(302).json({
+      return res.status(200).json({
         success: true,
         message: "User retrieved successfully",
         data: user,
@@ -157,7 +141,7 @@ export class UserController {
     try {
       const users = await userService.getAllUsers();
 
-      return res.status(302).json({
+      return res.status(200).json({
         success: true,
         message: "Users retrieved successfully",
         data: users,
@@ -167,7 +151,7 @@ export class UserController {
     }
   }
 
-  async changePassword(req: Request, res: Response, next: NextFunction) {
+  async changePassword(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { email, currentPassword, newPassword } = req.body;
 
@@ -175,20 +159,18 @@ export class UserController {
         email,
         currentPassword,
         newPassword,
+        req.user!.id
       );
 
-      return res
-        .status(201)
-        .json({
-          message: "Password changed successfully!",
-          success: true,
-          data: changed,
-        });
+      return res.status(201).json({
+        message: "Password changed successfully!",
+        success: true,
+        data: changed,
+      });
     } catch (error) {
       next(error);
     }
   }
 }
 
-// Export singleton instance
 export const userController = new UserController();

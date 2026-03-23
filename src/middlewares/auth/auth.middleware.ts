@@ -1,9 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
-import type { RowDataPacket } from "mysql2";
-import { db } from "../../DB/connection.ts";
+import { User } from "../../DB/models/index.ts";
 import { verifyToken } from "../../utils/jwt/jwt.ts";
 
-interface AuthRequest extends Request {
+export interface AuthRequest extends Request {
   user?: {
     id: number;
     role: string;
@@ -32,22 +31,28 @@ export const auth = async (
     // Verify token using centralized utility
     const decoded = verifyToken(token) as JwtPayload;
 
-    // Get user from database
-    const [users] = await db.query<RowDataPacket[]>(
-      "SELECT id, role FROM users WHERE id = ?",
-      [decoded.id]
-    );
+    // Get user from database using Sequelize
+    const user = await User.findByPk(decoded.id, {
+      attributes: ["id", "role", "isDeleted"],
+    });
 
-    if (users.length === 0) {
+    if (!user) {
       return res
         .status(401)
         .json({ message: "User not found. Access denied." });
     }
 
+    // Check if user is soft deleted
+    if (user.isDeleted === 1) {
+      return res
+        .status(403)
+        .json({ message: "Account has been deleted. Please contact support." });
+    }
+
     // Set user on request object
     req.user = {
-      id: users[0]?.id,
-      role: users[0]?.role,
+      id: user.id,
+      role: user.role,
     };
 
     next();

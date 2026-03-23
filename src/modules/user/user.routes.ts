@@ -1,20 +1,11 @@
 import { Router } from "express";
-import { userController } from "./user.controller.ts";
-import {
-  validate,
-  userSchema,
-  userIdSchema,
-} from "../../middlewares/validation/joi.ts";
+import { userController } from "../user/user.controller.ts";
+import { validate, userIdSchema } from "../../middlewares/validation/joi.ts";
 import { auth } from "../../middlewares/auth/auth.middleware.ts";
 
 const router = Router();
 
-// AUTH
-router.post(
-  "/register",
-  validate(userSchema, "body"),
-  userController.register.bind(userController),
-);
+// AUTH (without register - that's in registration module)
 router.post("/login", userController.login.bind(userController));
 router.post("/logout", auth, userController.logout.bind(userController));
 router.post("/resend-otp", userController.resendOTP.bind(userController));
@@ -25,7 +16,7 @@ router.post(
   userController.changePassword.bind(userController),
 );
 
-// update
+// Update
 router.put(
   "/update-user/:id",
   auth,
@@ -33,7 +24,7 @@ router.put(
   userController.updateUser.bind(userController),
 );
 
-// delet
+// Delete
 router.delete(
   "/:id",
   auth,

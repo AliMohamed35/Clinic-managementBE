@@ -62,6 +62,13 @@ export class UserAlreadySoftDeletedError extends Error{
   }
 }
 
+export class DoctorNotFoundError extends Error{
+  constructor(message = "The selected is not a doctor!"){
+    super(message);
+    this.name = "DoctorNotFoundError"
+  }
+}
+
 export class EnteredSamePassError extends Error{
   constructor(message = "You entered the same password!"){
     super(message);
@@ -95,5 +102,19 @@ export class AppointmentAlreadyExistError extends Error{
   constructor(message = "Appointment already exist!"){
     super(message);
     this.name = "AppointmentAlreadyExistError"
+  }
+}
+
+export class PastDateTimeError extends Error{
+  constructor(message = "Appointment date and time cannot be in the past!"){
+    super(message);
+    this.name = "PastDateTimeError"
+  }
+}
+
+export class ForbiddenError extends Error{
+  constructor(message = "You do not have permission to perform this action"){
+    super(message);
+    this.name = "ForbiddenError"
   }
 }
