@@ -1,11 +1,9 @@
-import type { RowDataPacket } from "mysql2";
-
 export enum UserRoles {
-  DOCTOR= 'doctor',
-  PATIENT= 'patient',
+  DOCTOR = "doctor",
+  PATIENT = "patient",
 }
 
-export interface User extends RowDataPacket {
+export interface User {
   id: number;
   name: string;
   email: string;
@@ -14,4 +12,6 @@ export interface User extends RowDataPacket {
   isActive: number;
   isDeleted: number;
   isVerified: number;
+  otp?: number | null;
+  otpExpire?: string | null;
 }

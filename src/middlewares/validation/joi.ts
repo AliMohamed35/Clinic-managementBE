@@ -42,7 +42,7 @@ export const userSchema = joi.object({
     .required()
     .messages({
       "string.pattern.base":
-        "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
+      "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
       "string.min": "Password should be at least 8 characters long",
       "string.empty": "Password cannot be empty",
     }),
@@ -56,6 +56,26 @@ export const userSchema = joi.object({
     .string()
     .valid(...Object.values(UserRoles))
     .required(),
+
+  // Doctor-specific fields
+  medical_field_id: joi.number().integer().positive().when('role', {
+    is: 'doctor',
+    then: joi.required(),
+    otherwise: joi.forbidden()
+  }),
+
+  // Patient-specific fields
+  date_of_birth: joi.string().when('role', {
+    is: 'patient',
+    then: joi.optional(),
+    otherwise: joi.forbidden()
+  }),
+  
+  gender: joi.string().valid('male', 'female', 'other').when('role', {
+    is: 'patient',
+    then: joi.optional(),
+    otherwise: joi.forbidden()
+  }),
 
   isActive: joi.number().valid(0, 1).default(0),
 

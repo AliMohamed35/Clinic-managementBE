@@ -1,27 +1,24 @@
 import {
+  ForbiddenError,
   InvalidCredentialsError,
   InvalidOTPError,
   InvalidPasswordError,
   OTPExpiredError,
   OTPNotFoundError,
-  UserAlreadyLoggedInError,
   UserAlreadySoftDeletedError,
   UserAlreadyVerifiedError,
   UserExistsError,
   UserNotFoundError,
   UserNotVerifiedError,
 } from "../../ExceptionHandler/customErrors.ts";
+import { checkOwnership } from "../../utils/authorization.ts";
 import { comparePassword, hashPassword } from "../../utils/hash/hash.ts";
 import { generateToken } from "../../utils/jwt/jwt.ts";
 import logger from "../../utils/logs/logger.ts";
 import { generateOTP } from "../../utils/otp/index.ts";
-import type {
-  CreateUserData,
-  UpdateUserDTO,
-  UserResponseDTO,
-} from "./user.dto.ts";
+import type { UpdateUserDTO, UserResponseDTO } from "./user.dto.ts";
 import { userRepository } from "./user.repository.ts";
-import type { User } from "./user.types.ts";
+import type { UserAttributes } from "../../DB/models/User.model.ts";
 
 export class UserService {
   async getUserById(id: number): Promise<UserResponseDTO> {
@@ -47,51 +44,6 @@ export class UserService {
   async getAllUsers(): Promise<UserResponseDTO[]> {
     const users = await userRepository.findAll();
     return users.map((user) => this.toResponseDTO(user));
-  }
-
-  async register(userData: CreateUserData): Promise<UserResponseDTO> {
-    const existingUser = await userRepository.findByEmail(userData.email);
-
-    if (existingUser) {
-      throw new UserExistsError();
-    }
-
-    // generate OTP
-    const { otp, otpExpire } = generateOTP();
-
-    // send OTP via email
-    // if (userData.email) {
-    //   await sendMail({
-    //     to: userData.email,
-    //     subject: "Veify your account",
-    //     html: `<p>Your otp to verify your account is ${otp}</p>`,
-    //   });
-    // }
-
-    const hashedPassword = await hashPassword(userData.password);
-
-    // create new user
-    const userId = await userRepository.create({
-      ...userData,
-      password: hashedPassword,
-      otp,
-      otpExpire,
-      isActive: 0,
-      isDeleted: 0,
-      isVerified: 0,
-    });
-
-    logger.info(`Registered user email: ${userData.email}`);
-
-    return {
-      id: userId,
-      name: userData.name,
-      email: userData.email,
-      role: userData.role,
-      isActive: 0,
-      isDeleted: 0,
-      isVerified: 0,
-    };
   }
 
   async login(
@@ -129,13 +81,14 @@ export class UserService {
     };
   }
 
-  async logout(email: string): Promise<void> {
+  async logout(email: string, currentUserId: number): Promise<void> {
     const user = await userRepository.findByEmail(email);
 
     if (!user) {
       throw new UserNotFoundError();
     }
 
+    checkOwnership(user.id, currentUserId, "UnAuthorized");
     await userRepository.updateByEmail(email, { isActive: 0 });
   }
 
@@ -192,6 +145,7 @@ export class UserService {
   async updateUser(
     id: number,
     userData: UpdateUserDTO,
+    currentUserId: number,
   ): Promise<UserResponseDTO> {
     // check existence
     const existingUser = await userRepository.findById(id);
@@ -212,6 +166,7 @@ export class UserService {
       if (emailTaken) throw new UserExistsError();
     }
 
+    checkOwnership(existingUser.id, currentUserId, "UnAuthorized");
     await userRepository.updateById(id, updateData);
 
     const updatedUser = await userRepository.findById(id);
@@ -219,7 +174,7 @@ export class UserService {
     return this.toResponseDTO(updatedUser!);
   }
 
-  async softDeleteUser(id: number): Promise<void> {
+  async softDeleteUser(id: number, currentUserId: number): Promise<void> {
     const existingUser = await userRepository.findById(id);
 
     if (!existingUser) throw new UserNotFoundError();
@@ -228,15 +183,19 @@ export class UserService {
       throw new UserAlreadySoftDeletedError();
     }
 
+    checkOwnership(existingUser.id, currentUserId, "Unauthorized");
+
     await userRepository.softDelete(id);
 
     logger.info(`User soft deleted: ${existingUser.email}`);
   }
 
-  async deleteUser(id: number): Promise<number> {
+  async deleteUser(id: number, currentUserId: number): Promise<number> {
     const existingUser = await userRepository.findById(id);
 
     if (!existingUser) throw new UserNotFoundError();
+
+    checkOwnership(existingUser.id, currentUserId, "UnAuthorized");
 
     const deletedUser = await userRepository.deleteById(id);
 
@@ -248,6 +207,7 @@ export class UserService {
     email: string,
     currentPassword: string,
     newPassword: string,
+    currentUserId: number,
   ): Promise<UserResponseDTO> {
     // user existence
     const existingUser = await userRepository.findByEmail(email);
@@ -267,14 +227,16 @@ export class UserService {
 
     const hashedPassword = await hashPassword(newPassword);
 
-    existingUser.password = hashedPassword;
-    await userRepository.updateByEmail(email, {password: hashedPassword});
+    checkOwnership(existingUser.id, currentUserId, "unAuthorized");
+    await userRepository.updateByEmail(email, { password: hashedPassword });
 
-    return this.toResponseDTO(existingUser);
+    // Fetch updated user
+    const updatedUser = await userRepository.findByEmail(email);
+    return this.toResponseDTO(updatedUser!);
   }
 
   // Private helper to convert User to DTO (strips sensitive fields)
-  private toResponseDTO(user: User): UserResponseDTO {
+  private toResponseDTO(user: UserAttributes): UserResponseDTO {
     return {
       id: user.id,
       name: user.name,

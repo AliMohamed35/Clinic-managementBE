@@ -14,6 +14,9 @@ import {
   InvalidPasswordError,
   AppNotFoundError,
   UserAlreadyLoggedInError,
+  PastDateTimeError,
+  ForbiddenError,
+  DoctorNotFoundError,
 } from "./customErrors.ts";
 import logger from "../utils/logs/logger.ts";
 
@@ -71,6 +74,17 @@ export const errorHandler = (
   }
   if (error instanceof AppointmentAlreadyExistError) {
     return res.status(400).json({ success: false, message: error.message });
+  }
+
+  if (error instanceof PastDateTimeError) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+
+  if (error instanceof ForbiddenError) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+  if (error instanceof DoctorNotFoundError) {
+    return res.status(404).json({ success: false, message: error.message });
   }
 
   logger.error(`${error.name}: ${error.message}`);

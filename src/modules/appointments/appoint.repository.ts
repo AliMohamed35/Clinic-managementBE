@@ -1,49 +1,59 @@
-import type { ResultSetHeader, RowDataPacket } from "mysql2";
-import { db } from "../../DB/connection.ts";
+import { Op } from "sequelize";
+import { Appointment } from "../../DB/models/index.ts";
+import type { AppointmentAttributes } from "../../DB/models/Appointment.model.ts";
 import type { CreateAppointmentData } from "./appoint.dto.ts";
-import type { Appointments } from "./appoint.types.ts";
 
 export class AppointmentRepository {
-  async findById(id: number): Promise<Appointments | null> {
-    const [result] = await db.query<Appointments[]>(
-      "SELECT * FROM appointments WHERE id = ?",
-      [id],
-    );
-
-    return result[0] ?? null;
+  async findById(id: number): Promise<AppointmentAttributes | null> {
+    const appointment = await Appointment.findByPk(id);
+    return appointment ? appointment.get({ plain: true }) : null;
   }
 
   async findConflictingAppointment(
     doctor_id: number,
     appointment_date: string,
     appointment_time: string,
-  ): Promise<Appointments | null> {
-    const [result] = await db.query<Appointments[]>(
-      "SELECT * FROM appointments WHERE doctor_id = ? AND appointment_date = ? AND appointment_time = ?",
-      [doctor_id, appointment_date, appointment_time],
-    );
-
-    return result[0] ?? null;
+  ): Promise<AppointmentAttributes | null> {
+    const appointment = await Appointment.findOne({
+      where: {
+        doctor_id,
+        appointment_date,
+        appointment_time,
+      },
+    });
+    return appointment ? appointment.get({ plain: true }) : null;
   }
 
   async create(appData: CreateAppointmentData): Promise<number> {
-    const [result] = await db.execute<ResultSetHeader>(
-      "INSERT INTO appointments (patient_id, doctor_id, appointment_date, appointment_time, status) VALUES (?, ?, ?, ?, ?)",
-      [
-        appData.patient_id,
-        appData.doctor_id,
-        appData.appointment_date,
-        appData.appointment_time,
-        appData.status,
-      ],
-    );
-
-    return result.insertId;
+    const appointment = await Appointment.create({
+      patient_id: appData.patient_id,
+      doctor_id: appData.doctor_id,
+      appointment_date: appData.appointment_date,
+      appointment_time: appData.appointment_time,
+      status: appData.status,
+    });
+    return appointment.id;
   }
 
-  async findAll(): Promise<Appointments[]>{
-    const [result] = await db.query<Appointments[]>("SELECT * FROM appointments");
-    return result;
+  async findAll(): Promise<AppointmentAttributes[]> {
+    const appointments = await Appointment.findAll();
+    return appointments.map((app) => app.get({ plain: true }));
+  }
+
+  async deleteById(id: number): Promise<void> {
+    await Appointment.destroy({
+      where: { id },
+    });
+  }
+
+  async updateById(
+    id: number,
+    data: Record<string, unknown>
+  ): Promise<boolean> {
+    const [affectedRows] = await Appointment.update(data, {
+      where: { id },
+    });
+    return affectedRows > 0;
   }
 }
 
